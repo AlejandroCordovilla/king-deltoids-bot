@@ -529,14 +529,55 @@ function App() {
     setResult(null);
     setShowThought(false);
     try {
-      const r = await fetch(`${API_URL}/ask`, {
+      const r = await fetch(`${API_URL}/ask-stream`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question: q.trim() }),
       });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      const data = await r.json();
-      setResult(data);
+
+      const reader = r.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let answerText = '';
+      let chunks = [];
+      let confidence = 0;
+
+      // Initialize result so UI renders immediately
+      setResult({ answer: '', sources: [], chunks: [], confidence: 0 });
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          let evt;
+          try { evt = JSON.parse(line); } catch { continue; }
+          if (evt.type === 'sources') {
+            chunks = evt.chunks || [];
+            confidence = evt.confidence ?? confidence;
+            setResult({
+              answer: answerText,
+              sources: chunks.map(c => c.url),
+              chunks,
+              confidence,
+            });
+          } else if (evt.type === 'token') {
+            answerText += evt.text;
+            setResult({
+              answer: answerText,
+              sources: chunks.map(c => c.url),
+              chunks,
+              confidence,
+            });
+          } else if (evt.type === 'done') {
+            // final state already set
+          }
+        }
+      }
     } catch (e) {
       setError(e.message || 'Could not reach the bot. Is the API running?');
     } finally {

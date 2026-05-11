@@ -13,6 +13,7 @@ import re
 from openai import OpenAI
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from retrieve import retrieve, _load_dotenv
@@ -21,6 +22,17 @@ from kd_profile import KD_PROFILE
 _load_dotenv()
 
 app = FastAPI(title="King Deltoids Bot API")
+
+
+@app.on_event("startup")
+def _warmup():
+    """Pre-load embedder + Chroma + BM25 cache so the first request isn't cold."""
+    from retrieve import retrieve
+    try:
+        retrieve("warmup query about training")
+        print("[startup] retrieval warmed", flush=True)
+    except Exception as e:
+        print(f"[startup] warmup failed: {e}", flush=True)
 
 MAX_QUESTION_LEN = 300
 
@@ -268,6 +280,96 @@ def ask(req: AskRequest):
         chunks=chunks,
         confidence=confidence,
     )
+
+
+STREAM_SYNTHESIS_PROMPT = (
+    "You are answering in the voice of king_deltoids (Instagram strength and hypertrophy coach), "
+    "based on his Instagram captions and on-screen video text below. Then several retrieved "
+    "excerpts. Each excerpt has CAPTION and/or ON-SCREEN TEXT -- both are his words.\n\n"
+    "TASK:\n"
+    "1. If the excerpts address the question (even partially), write a 2-4 sentence answer "
+    "using ONLY claims and numbers in the excerpts.\n"
+    "2. If excerpts are completely unrelated, say: 'King Deltoids hasn't covered this specific "
+    "topic in detail -- try asking about hypertrophy, rep ranges, training intensity, or programming.'\n\n"
+    "RULES:\n"
+    "- Use ONLY claims/numbers from the excerpts. Do NOT invent.\n"
+    "- Numbers must include unit and context.\n"
+    "- Match his direct, instructive tone -- concise, no fluff, no sign-off.\n"
+    "- Prefer a partial answer over saying 'no info'. If even one excerpt mentions the topic, "
+    "extract what's there.\n"
+    "- Output ONLY the answer text. No JSON, no preamble, no quotes.\n\n"
+    + KD_PROFILE
+)
+
+
+def _stream_synthesis(client: OpenAI, question: str, hits: list[dict]):
+    """Yield chunks of {type, ...} as SSE-style JSON lines."""
+    excerpts_block = "\n\n".join(
+        f"[Excerpt {i}]\n{h['text']}" for i, h in enumerate(hits)
+    )
+    user_msg = (
+        f"Question: {_wrap_user_input(question)}\n\n"
+        f"Retrieved excerpts:\n\n{excerpts_block}"
+    )
+    stream = client.chat.completions.create(
+        model="gpt-4o-mini", max_tokens=500, temperature=0,
+        messages=[
+            {"role": "system", "content": STREAM_SYNTHESIS_PROMPT},
+            {"role": "user", "content": user_msg},
+        ],
+        stream=True,
+    )
+    for chunk in stream:
+        delta = chunk.choices[0].delta.content if chunk.choices else None
+        if delta:
+            yield json.dumps({"type": "token", "text": delta}) + "\n"
+
+
+@app.post("/ask-stream")
+def ask_stream(req: AskRequest):
+    """SSE-ish line-delimited JSON stream: sources first, then tokens."""
+    client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+    question = _sanitize_input(req.question)
+
+    def gen():
+        # Skip topic guard + disambiguation entirely for streaming -- the
+        # synthesis prompt itself handles off-topic gracefully, and retrieval
+        # is fast enough that we don't need a rewritten query.
+        hits = _retrieve_for(question, question)
+
+        seen_urls: set[str] = set()
+        unique_hits = []
+        for h in hits:
+            url = h["meta"].get("url", "")
+            if url in seen_urls:
+                continue
+            seen_urls.add(url)
+            unique_hits.append(h)
+            if len(unique_hits) >= 6:
+                break
+
+        # Send source chunks BEFORE streaming the answer -- the UI can render them immediately
+        chunks = [
+            {
+                "url": h["meta"].get("url", ""),
+                "description": (h["meta"].get("caption_preview") or h["meta"].get("short_code", ""))[:140],
+                "excerpt": h["text"][:600],
+            }
+            for h in unique_hits
+        ]
+        yield json.dumps({"type": "sources", "chunks": chunks}) + "\n"
+
+        if not unique_hits:
+            yield json.dumps({"type": "token", "text": "No content indexed for this question yet."}) + "\n"
+            yield json.dumps({"type": "done"}) + "\n"
+            return
+
+        # Stream the synthesis tokens
+        for line in _stream_synthesis(client, question, unique_hits):
+            yield line
+        yield json.dumps({"type": "done"}) + "\n"
+
+    return StreamingResponse(gen(), media_type="application/x-ndjson")
 
 
 if __name__ == "__main__":
