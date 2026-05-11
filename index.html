@@ -428,6 +428,7 @@
 
 <script type="text/babel">
 const { useState, useEffect, useCallback } = React;
+const { flushSync } = ReactDOM;
 
 const API_URL = window.KD_API_URL ||
   (window.location.hostname === 'localhost' ? 'http://localhost:8002' : 'https://improve-camcorder-marked-distinct.trycloudflare.com');
@@ -529,20 +530,20 @@ function App() {
           if (evt.type === 'sources') {
             chunks = evt.chunks || [];
             confidence = evt.confidence ?? confidence;
-            setResult({
+            flushSync(() => setResult({
               answer: answerText,
               sources: chunks.map(c => c.url),
               chunks,
               confidence,
-            });
+            }));
           } else if (evt.type === 'token') {
             answerText += evt.text;
-            setResult({
+            flushSync(() => setResult({
               answer: answerText,
               sources: chunks.map(c => c.url),
               chunks,
               confidence,
-            });
+            }));
           } else if (evt.type === 'done') {
             // final state already set
           }
