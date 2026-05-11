@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ask King Deltoids</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:           #0E0B08;
+      --surface:      #1A1410;
+      --surface-up:   #221A14;
+      --text:         #FFFFFF;
+      --text-dim:     #B8A99C;
+      --text-muted:   #6B5D52;
+      --border:       rgba(255,200,100,0.10);
+      --border-mid:   rgba(255,200,100,0.18);
+      --gold:         #E8B547;
+      --gold-hover:   #C49934;
+      --gold-dim:     rgba(232,181,71,0.12);
+      --crimson:      #C8413A;
+      --crimson-hover:#A2322C;
+      --font-body:    'Inter', sans-serif;
+      --font-display: 'Bebas Neue', 'Inter', sans-serif;
+    }
+
+    html, body { height: 100%; }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      background-image:
+        radial-gradient(circle at 20% 0%, rgba(200,65,58,0.07) 0%, transparent 45%),
+        radial-gradient(circle at 80% 100%, rgba(232,181,71,0.05) 0%, transparent 50%);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+
+    #root { min-height: 100vh; display: flex; flex-direction: column; }
+
+    .header {
+      border-bottom: 1px solid var(--border);
+      padding: 16px 56px;
+      display: flex;
+      align-items: center;
+      gap: 0;
+      background: rgba(14,11,8,0.85);
+      backdrop-filter: blur(8px);
+    }
+    .header-left { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+    .header-title {
+      font-family: var(--font-display);
+      font-size: 30px;
+      font-weight: 400;
+      letter-spacing: 0.06em;
+      color: var(--text);
+      line-height: 1;
+    }
+    .header-title .crown { color: var(--gold); margin-right: 8px; }
+    .header-tagline {
+      font-family: var(--font-display);
+      font-size: 11px;
+      letter-spacing: 0.22em;
+      color: var(--gold);
+    }
+
+    .main {
+      flex: 1;
+      display: flex;
+      max-width: 1440px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 48px 56px 80px;
+      align-items: flex-start;
+      gap: 0;
+    }
+    .col-left { flex: 0 0 60%; padding-right: 72px; display: flex; flex-direction: column; }
+    .col-right { flex: 0 0 40%; padding-left: 56px; border-left: 1px solid var(--border); position: sticky; top: 40px; }
+
+    .input-section { margin-bottom: 56px; }
+    .input-wrap {
+      border: 1.5px solid var(--border-mid);
+      border-radius: 4px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      display: flex;
+      align-items: stretch;
+      overflow: hidden;
+      background: rgba(0,0,0,0.25);
+    }
+    .input-wrap:focus-within {
+      border-color: var(--gold);
+      box-shadow: 0 0 0 3px rgba(232,181,71,0.15);
+    }
+    .question-input {
+      flex: 1;
+      padding: 16px 18px;
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--text);
+      background: transparent;
+      border: none;
+      outline: none;
+      resize: none;
+      line-height: 1;
+      caret-color: var(--gold);
+    }
+    .question-input::placeholder { color: var(--text-muted); }
+
+    .ask-btn {
+      flex-shrink: 0;
+      padding: 0 26px;
+      background: linear-gradient(180deg, var(--crimson) 0%, var(--crimson-hover) 100%);
+      color: #fff;
+      border: none;
+      border-left: 1px solid rgba(255,255,255,0.10);
+      font-family: var(--font-display);
+      font-size: 16px;
+      letter-spacing: 0.18em;
+      cursor: pointer;
+      transition: filter 0.15s;
+      line-height: 1;
+      height: 48px;
+    }
+    .ask-btn:hover:not(:disabled) { filter: brightness(1.15); }
+    .ask-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    .suggested { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+    .suggested-chip {
+      padding: 7px 14px;
+      border: 1px solid var(--border-mid);
+      background: transparent;
+      border-radius: 100px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+      font-family: var(--font-body);
+    }
+    .suggested-chip:hover {
+      border-color: var(--gold);
+      color: var(--gold);
+      background: var(--gold-dim);
+    }
+    .stat-line {
+      margin-top: 16px;
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 0.06em;
+      font-weight: 500;
+    }
+    .stat-line span {
+      color: var(--gold);
+      font-weight: 700;
+    }
+
+    .loading-block { display: flex; flex-direction: column; gap: 18px; }
+    .loading-bar {
+      height: 2px;
+      background: var(--border-mid);
+      border-radius: 0;
+      overflow: hidden;
+    }
+    .loading-bar-fill {
+      height: 100%;
+      width: 45%;
+      background: linear-gradient(90deg, var(--crimson) 0%, var(--gold) 100%);
+      animation: loadbar 1.4s ease-in-out infinite;
+    }
+    @keyframes loadbar {
+      0%   { transform: translateX(-120%); }
+      100% { transform: translateX(300%); }
+    }
+    .loading-text {
+      font-size: 11px;
+      font-family: var(--font-display);
+      letter-spacing: 0.22em;
+      color: var(--gold);
+    }
+
+    .answer-section { animation: fadeUp 0.35s ease; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .answer-eyebrow {
+      font-family: var(--font-display);
+      font-size: 12px;
+      letter-spacing: 0.28em;
+      color: var(--gold);
+      margin-bottom: 24px;
+    }
+    .answer-body {
+      font-size: 16px;
+      line-height: 1.78;
+      color: rgba(255,255,255,0.88);
+      font-weight: 400;
+      text-wrap: pretty;
+    }
+    .answer-body strong { font-weight: 700; color: var(--gold); }
+    .answer-body ul {
+      margin: 12px 0 12px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding-left: 18px;
+    }
+    .answer-body li { padding-left: 4px; }
+    .answer-body p + p { margin-top: 14px; }
+    .answer-body h3 {
+      font-family: var(--font-display);
+      font-size: 16px;
+      letter-spacing: 0.16em;
+      color: var(--gold);
+      margin: 28px 0 10px;
+    }
+
+    .confidence-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      margin-left: 12px;
+      vertical-align: middle;
+    }
+    .conf-high { background: rgba(80,180,90,0.15); color: #6ED877; border: 1px solid rgba(80,180,90,0.3); }
+    .conf-mid  { background: rgba(232,181,71,0.15); color: var(--gold); border: 1px solid rgba(232,181,71,0.3); }
+    .conf-low  { background: rgba(200,65,58,0.15); color: #FF7A72; border: 1px solid rgba(200,65,58,0.3); }
+
+    .answer-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 40px 0;
+    }
+
+    .thought-toggle {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+    }
+    .thought-label {
+      font-family: var(--font-display);
+      font-size: 12px;
+      letter-spacing: 0.22em;
+      color: var(--text-muted);
+    }
+    .thought-chevron {
+      color: var(--text-muted);
+      transition: transform 0.2s;
+    }
+    .thought-chevron.open { transform: rotate(180deg); }
+    .thought-count {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--gold);
+      background: var(--gold-dim);
+      border-radius: 2px;
+      padding: 2px 8px;
+      letter-spacing: 0.06em;
+    }
+    .thought-cards {
+      margin-top: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      animation: fadeUp 0.2s ease;
+    }
+    .thought-card {
+      border: 1px solid var(--border);
+      background: var(--surface);
+      border-radius: 4px;
+      padding: 16px 18px;
+      transition: border-color 0.15s;
+    }
+    .thought-card:hover { border-color: var(--gold-dim); }
+    .thought-card-label {
+      font-family: var(--font-display);
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      color: var(--gold);
+      margin-bottom: 8px;
+    }
+    .thought-card-source {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+    }
+    .thought-card-excerpt {
+      font-size: 13px;
+      line-height: 1.65;
+      color: rgba(255,255,255,0.55);
+      font-style: italic;
+    }
+
+    .section-label {
+      font-family: var(--font-display);
+      font-size: 11px;
+      letter-spacing: 0.28em;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+
+    .video-card {
+      background: var(--surface-up);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 44px;
+    }
+    .video-thumbnail {
+      width: 100%;
+      aspect-ratio: 9/12;
+      max-height: 480px;
+      background: linear-gradient(135deg, #1A1410 0%, #0E0B08 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    .video-thumbnail::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at center, rgba(232,181,71,0.08) 0%, transparent 60%);
+    }
+    .thumb-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      z-index: 1;
+    }
+    .thumb-play {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: rgba(232,181,71,0.15);
+      border: 1.5px solid var(--gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .thumb-label {
+      font-family: var(--font-display);
+      font-size: 11px;
+      letter-spacing: 0.22em;
+      color: var(--gold);
+    }
+    .video-info { padding: 20px 20px 22px; }
+    .video-desc {
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 1.55;
+      color: rgba(255,255,255,0.75);
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      margin-bottom: 18px;
+    }
+    .watch-btn {
+      display: block;
+      width: 100%;
+      padding: 14px 0;
+      background: linear-gradient(180deg, var(--gold) 0%, var(--gold-hover) 100%);
+      color: #0E0B08;
+      text-align: center;
+      text-decoration: none;
+      font-family: var(--font-display);
+      font-size: 14px;
+      letter-spacing: 0.22em;
+      border-radius: 2px;
+      transition: filter 0.15s;
+    }
+    .watch-btn:hover { filter: brightness(1.1); }
+
+    .video-empty {
+      background: var(--surface);
+      border: 1px dashed var(--border-mid);
+      border-radius: 4px;
+      padding: 28px 24px;
+      text-align: center;
+      margin-bottom: 44px;
+    }
+    .video-empty-text {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .also-ref { display: flex; flex-direction: column; gap: 0; }
+    .also-ref-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+      text-decoration: none;
+      color: rgba(255,255,255,0.7);
+      font-size: 13px;
+      font-weight: 500;
+      transition: color 0.15s;
+      cursor: pointer;
+    }
+    .also-ref-item:first-child { border-top: 1px solid var(--border); }
+    .also-ref-item:hover { color: var(--gold); }
+    .also-ref-num {
+      font-family: var(--font-display);
+      font-size: 14px;
+      color: var(--gold);
+      letter-spacing: 0.06em;
+      min-width: 24px;
+    }
+    .also-ref-text {
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .also-ref-arrow { color: var(--text-muted); }
+
+    .error-box {
+      padding: 16px 18px;
+      background: rgba(200,65,58,0.12);
+      border: 1px solid rgba(200,65,58,0.3);
+      border-radius: 4px;
+      font-size: 13px;
+      color: #FF7A72;
+      line-height: 1.55;
+    }
+
+    @media (max-width: 920px) {
+      .main { flex-direction: column; padding: 32px 24px 60px; }
+      .col-left, .col-right { flex: none; width: 100%; padding: 0; border: none; position: static; }
+      .col-right { margin-top: 56px; padding-top: 32px; border-top: 1px solid var(--border); }
+      .header { padding: 14px 24px; }
+    }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useCallback } = React;
+
+const API_URL = window.KD_API_URL || 'http://localhost:8002';
+
+const SUGGESTED = [
+  'How should I train shoulders for growth?',
+  'Best rep range for hypertrophy?',
+  'Is creatine worth it?',
+  'How important is progressive overload?'
+];
+
+function parseAnswer(text) {
+  const lines = text.split('\n');
+  const elements = [];
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i].trimEnd();
+    if (!line.trim()) { i++; continue; }
+    if (line.startsWith('### ')) {
+      elements.push(<h3 key={i}>{line.slice(4)}</h3>);
+      i++;
+    } else if (line.startsWith('- ') || line.startsWith('* ')) {
+      const items = [];
+      while (i < lines.length && (lines[i].startsWith('- ') || lines[i].startsWith('* '))) {
+        items.push(<li key={i}>{renderInline(lines[i].slice(2))}</li>);
+        i++;
+      }
+      elements.push(<ul key={'ul' + i}>{items}</ul>);
+    } else {
+      elements.push(<p key={i}>{renderInline(line)}</p>);
+      i++;
+    }
+  }
+  return elements;
+}
+
+function renderInline(text) {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((p, i) =>
+    p.startsWith('**') && p.endsWith('**') ?
+      <strong key={i}>{p.slice(2, -2)}</strong> : p
+  );
+}
+
+function shortUrl(url) {
+  try {
+    const u = new URL(url);
+    return (u.hostname + u.pathname).replace(/^www\./, '').slice(0, 50);
+  } catch { return (url || '').slice(0, 50); }
+}
+
+function confLabel(c) {
+  if (c >= 7) return { cls: 'conf-high', txt: 'HIGH CONFIDENCE' };
+  if (c >= 4) return { cls: 'conf-mid', txt: 'MEDIUM CONFIDENCE' };
+  return { cls: 'conf-low', txt: 'LOW CONFIDENCE' };
+}
+
+function App() {
+  const [question, setQuestion] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+  const [showThought, setShowThought] = useState(false);
+
+  const ask = useCallback(async (q) => {
+    if (!q.trim() || loading) return;
+    setLoading(true);
+    setError(null);
+    setResult(null);
+    setShowThought(false);
+    try {
+      const r = await fetch(`${API_URL}/ask`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: q.trim() }),
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const data = await r.json();
+      setResult(data);
+    } catch (e) {
+      setError(e.message || 'Could not reach the bot. Is the API running?');
+    } finally {
+      setLoading(false);
+    }
+  }, [loading]);
+
+  const handleSubmit = (e) => { e.preventDefault(); ask(question); };
+
+  const top = result?.chunks?.[0];
+  const others = (result?.chunks || []).slice(1, 4);
+  const conf = result ? confLabel(result.confidence || 0) : null;
+
+  return (
+    <>
+      <div className="header">
+        <div className="header-left">
+          <div className="header-title"><span className="crown">♛</span>ASK KING DELTOIDS</div>
+          <div className="header-tagline">EXERCISE SCIENCE · HYPERTROPHY · STRENGTH</div>
+        </div>
+      </div>
+      <div className="main">
+        <div className="col-left">
+          <div className="input-section">
+            <form onSubmit={handleSubmit}>
+              <div className="input-wrap">
+                <textarea
+                  className="question-input"
+                  rows={1}
+                  placeholder="Ask about training, hypertrophy, programming..."
+                  value={question}
+                  onChange={(e) => setQuestion(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ask(question); }
+                  }}
+                />
+                <button type="submit" className="ask-btn" disabled={loading || !question.trim()}>
+                  {loading ? 'ASKING' : 'ASK'}
+                </button>
+              </div>
+            </form>
+            <div className="suggested">
+              {SUGGESTED.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  className="suggested-chip"
+                  onClick={() => { setQuestion(s); ask(s); }}
+                >{s}</button>
+              ))}
+            </div>
+            <div className="stat-line">
+              Trained on <span>king_deltoids</span> Instagram captions & video text
+            </div>
+          </div>
+
+          {loading && (
+            <div className="loading-block">
+              <div className="loading-bar"><div className="loading-bar-fill"/></div>
+              <div className="loading-text">RETRIEVING FROM KD'S CONTENT...</div>
+            </div>
+          )}
+
+          {error && <div className="error-box">{error}</div>}
+
+          {result && !loading && (
+            <div className="answer-section">
+              <div className="answer-eyebrow">
+                KD SAYS
+                {conf && <span className={`confidence-badge ${conf.cls}`}>{conf.txt}</span>}
+              </div>
+              <div className="answer-body">{parseAnswer(result.answer || '')}</div>
+
+              {result.chunks?.length > 0 && (
+                <>
+                  <div className="answer-divider"/>
+                  <button className="thought-toggle" onClick={() => setShowThought((s) => !s)}>
+                    <span className="thought-label">SOURCE EXCERPTS</span>
+                    <span className="thought-count">{result.chunks.length}</span>
+                    <svg className={`thought-chevron ${showThought ? 'open' : ''}`} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                  </button>
+                  {showThought && (
+                    <div className="thought-cards">
+                      {result.chunks.map((c, i) => (
+                        <div key={i} className="thought-card">
+                          <div className="thought-card-label">EXCERPT {i + 1}</div>
+                          <div className="thought-card-source">{c.description}</div>
+                          <div className="thought-card-excerpt">{c.excerpt}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="col-right">
+          {!result ? (
+            <>
+              <div className="section-label">MOST RELEVANT POST</div>
+              <div className="video-empty">
+                <div className="video-empty-text">
+                  Ask a question to see KD's most relevant Instagram post and source quotes.
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="section-label">MOST RELEVANT POST</div>
+              {top ? (
+                <div className="video-card">
+                  <div className="video-thumbnail">
+                    <div className="thumb-placeholder">
+                      <div className="thumb-play">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--gold)">
+                          <polygon points="6,4 20,12 6,20"/>
+                        </svg>
+                      </div>
+                      <div className="thumb-label">INSTAGRAM</div>
+                    </div>
+                  </div>
+                  <div className="video-info">
+                    <div className="video-desc">{top.description}</div>
+                    <a className="watch-btn" href={top.url} target="_blank" rel="noopener">
+                      WATCH ON INSTAGRAM ↗
+                    </a>
+                  </div>
+                </div>
+              ) : (
+                <div className="video-empty">
+                  <div className="video-empty-text">No matching post found.</div>
+                </div>
+              )}
+              {others.length > 0 && (
+                <>
+                  <div className="section-label">ALSO REFERENCED</div>
+                  <div className="also-ref">
+                    {others.map((c, i) => (
+                      <a key={i} className="also-ref-item" href={c.url} target="_blank" rel="noopener">
+                        <span className="also-ref-num">0{i + 2}</span>
+                        <span className="also-ref-text">{c.description || shortUrl(c.url)}</span>
+                        <svg className="also-ref-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <line x1="7" y1="17" x2="17" y2="7"/>
+                          <polyline points="7 7 17 7 17 17"/>
+                        </svg>
+                      </a>
+                    ))}
+                  </div>
+                </>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
