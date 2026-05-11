@@ -337,6 +337,7 @@ def ask_stream(req: AskRequest):
         # is fast enough that we don't need a rewritten query.
         hits = _retrieve_for(question, question)
 
+        # Dedupe by URL, keep up to 8 candidates for synthesis context
         seen_urls: set[str] = set()
         unique_hits = []
         for h in hits:
@@ -345,17 +346,27 @@ def ask_stream(req: AskRequest):
                 continue
             seen_urls.add(url)
             unique_hits.append(h)
-            if len(unique_hits) >= 6:
+            if len(unique_hits) >= 8:
                 break
 
-        # Send source chunks BEFORE streaming the answer -- the UI can render them immediately
+        # Filter for UI: only chunks that are actually relevant to the question.
+        # Uses rerank_distance computed against the question via the embed model.
+        # Hard cap: top 3 shown to the user.
+        from retrieve import RELEVANCE_THRESHOLD
+        relevant = [h for h in unique_hits if h.get("rerank_distance", 1.0) <= RELEVANCE_THRESHOLD]
+        if not relevant:
+            # If nothing crosses the threshold, still show the top 2 so the user
+            # sees something rather than an empty source list.
+            relevant = unique_hits[:2]
+        display_hits = relevant[:3]
+
         chunks = [
             {
                 "url": h["meta"].get("url", ""),
-                "description": (h["meta"].get("caption_preview") or h["meta"].get("short_code", ""))[:140],
+                "description": (h["meta"].get("caption_preview") or h["meta"].get("short_code", ""))[:160],
                 "excerpt": h["text"][:600],
             }
-            for h in unique_hits
+            for h in display_hits
         ]
         yield json.dumps({"type": "sources", "chunks": chunks}) + "\n"
 

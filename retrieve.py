@@ -108,6 +108,31 @@ def _bm25_retrieve(query: str, k: int) -> list[dict]:
     ]
 
 
+def _rerank(question: str, hits: list[dict]) -> list[dict]:
+    """Re-score every hit against the question using the embedding model.
+
+    BM25 hits arrive with a fake 'distance' derived from BM25 score, which is
+    not comparable to cosine distance. Re-embedding gives every hit the same
+    distance metric so we can rank them honestly.
+    """
+    if not hits:
+        return hits
+    q_emb = embedder().encode([question], normalize_embeddings=True)[0]
+    doc_embs = embedder().encode(
+        [h["text"] for h in hits], normalize_embeddings=True, show_progress_bar=False
+    )
+    for h, d_emb in zip(hits, doc_embs):
+        # Cosine distance = 1 - cosine_similarity (lower = better)
+        sim = float((q_emb * d_emb).sum())
+        h["rerank_distance"] = 1.0 - sim
+    return sorted(hits, key=lambda h: h["rerank_distance"])
+
+
+# Hits below this rerank distance are kept; chunks above it are dropped from
+# the user-facing source list (still considered for synthesis).
+RELEVANCE_THRESHOLD = 0.45  # cosine distance; ~similarity > 0.55
+
+
 def retrieve(question: str, k: int = TOP_K) -> list[dict]:
     seen: dict[str, dict] = {}
     for q in _expand_queries(question):
@@ -119,5 +144,6 @@ def retrieve(question: str, k: int = TOP_K) -> list[dict]:
         key = hit["text"][:60]
         if key not in seen:
             seen[key] = hit
-    results = sorted(seen.values(), key=lambda h: h["distance"])
-    return results[: k * 2]
+    results = list(seen.values())
+    # Re-rank everything against the question with the same metric
+    return _rerank(question, results)

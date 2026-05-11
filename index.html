@@ -320,56 +320,16 @@
       background: var(--surface-up);
       border: 1px solid var(--border);
       border-radius: 4px;
-      overflow: hidden;
+      padding: 20px 20px 22px;
       margin-bottom: 44px;
     }
-    .video-thumbnail {
-      width: 100%;
-      aspect-ratio: 9/12;
-      max-height: 480px;
-      background: linear-gradient(135deg, #1A1410 0%, #0E0B08 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-    }
-    .video-thumbnail::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(circle at center, rgba(232,181,71,0.08) 0%, transparent 60%);
-    }
-    .thumb-placeholder {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 14px;
-      z-index: 1;
-    }
-    .thumb-play {
-      width: 56px;
-      height: 56px;
-      border-radius: 50%;
-      background: rgba(232,181,71,0.15);
-      border: 1.5px solid var(--gold);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .thumb-label {
-      font-family: var(--font-display);
-      font-size: 11px;
-      letter-spacing: 0.22em;
-      color: var(--gold);
-    }
-    .video-info { padding: 20px 20px 22px; }
     .video-desc {
       font-size: 13px;
       font-weight: 500;
       line-height: 1.55;
-      color: rgba(255,255,255,0.75);
+      color: rgba(255,255,255,0.78);
       display: -webkit-box;
-      -webkit-line-clamp: 3;
+      -webkit-line-clamp: 4;
       -webkit-box-orient: vertical;
       overflow: hidden;
       margin-bottom: 18px;
@@ -693,22 +653,10 @@ function App() {
               <div className="section-label">MOST RELEVANT POST</div>
               {top ? (
                 <div className="video-card">
-                  <div className="video-thumbnail">
-                    <div className="thumb-placeholder">
-                      <div className="thumb-play">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--gold)">
-                          <polygon points="6,4 20,12 6,20"/>
-                        </svg>
-                      </div>
-                      <div className="thumb-label">INSTAGRAM</div>
-                    </div>
-                  </div>
-                  <div className="video-info">
-                    <div className="video-desc">{top.description}</div>
-                    <a className="watch-btn" href={top.url} target="_blank" rel="noopener">
-                      WATCH ON INSTAGRAM ↗
-                    </a>
-                  </div>
+                  <div className="video-desc">{top.description}</div>
+                  <a className="watch-btn" href={top.url} target="_blank" rel="noopener">
+                    WATCH ON INSTAGRAM ↗
+                  </a>
                 </div>
               ) : (
                 <div className="video-empty">
