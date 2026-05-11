@@ -615,10 +615,7 @@ function App() {
 
           {result && !loading && (
             <div className="answer-section">
-              <div className="answer-eyebrow">
-                KD SAYS
-                {conf && <span className={`confidence-badge ${conf.cls}`}>{conf.txt}</span>}
-              </div>
+              <div className="answer-eyebrow">KD SAYS</div>
               <div className="answer-body">{parseAnswer(result.answer || '')}</div>
 
               {result.chunks?.length > 0 && (
