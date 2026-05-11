@@ -459,7 +459,8 @@
 <script type="text/babel">
 const { useState, useEffect, useCallback } = React;
 
-const API_URL = window.KD_API_URL || 'http://localhost:8002';
+const API_URL = window.KD_API_URL ||
+  (window.location.hostname === 'localhost' ? 'http://localhost:8002' : 'https://ask-king-deltoids.loca.lt');
 
 const SUGGESTED = [
   'How should I train shoulders for growth?',
@@ -530,7 +531,7 @@ function App() {
     try {
       const r = await fetch(`${API_URL}/ask`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'bypass-tunnel-reminder': '1' },
         body: JSON.stringify({ question: q.trim() }),
       });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
